@@ -14,24 +14,24 @@ RUN npm run generate
 
 FROM python:3.12-slim
 
-RUN apt-get update && apt-get install -y \
-    gcc \
-    default-libmysqlclient-dev \
-    pkg-config \
-    && rm -rf /var/lib/apt/lists/*
-
 WORKDIR /app
 
 COPY agent/pyproject.toml agent/poetry.lock* ./agent/
-RUN pip install poetry && \
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    gcc \
+    default-libmysqlclient-dev \
+    pkg-config \
+    && pip install poetry && \
     cd agent && \
     poetry config virtualenvs.create false && \
-    poetry install --without dev --extras "db-postgres db-postgres-async db-mysql db-mysql-native"
+    poetry install --without dev --extras "db-postgres db-postgres-async db-mysql db-mysql-native" && \
+    apt-get purge -y gcc pkg-config && \
+    apt-get autoremove -y && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY agent/ ./agent/
 COPY --from=frontend-builder /app/frontend/.output/public ./agent/ui
 
-ENV CELERY_BROKER_URL=amqp://guest:guest@localhost:5672//
 ENV WS_HOST=0.0.0.0
 ENV WS_PORT=8765
 ENV LOG_LEVEL=INFO

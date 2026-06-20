@@ -120,7 +120,7 @@ def test_frontend_static_mount_uses_asgi_root_path_for_asset_prefix(monkeypatch,
     monkeypatch.delenv("NUXT_PUBLIC_URL_PREFIX", raising=False)
 
     app = create_app()
-    status, _, body = anyio.run(request_app, app, "/ui/", "text/html", "/kanchi")
+    status, _, body = anyio.run(request_app, app, "/kanchi/ui/", "text/html", "/kanchi")
 
     assert status == 200
     assert b'"/kanchi/ui/_nuxt/app.js"' in body
@@ -194,3 +194,23 @@ def test_frontend_root_redirect_uses_asgi_root_path(monkeypatch, tmp_path):
     response = anyio.run(root_route.endpoint, request)
 
     assert response.headers["location"] == "/kanchi/ui/"
+
+
+def test_frontend_root_redirect_prefers_configured_url_prefix(monkeypatch, tmp_path):
+    frontend_dir = tmp_path / "ui"
+    frontend_dir.mkdir()
+    (frontend_dir / "index.html").write_text("<html>Kanchi UI</html>", encoding="utf-8")
+
+    monkeypatch.setenv("FRONTEND_DIST_DIR", str(frontend_dir))
+    monkeypatch.setenv("NUXT_PUBLIC_URL_PREFIX", "/configured")
+
+    app = create_app()
+    root_route = next(
+        route for route in app.routes if isinstance(route, APIRoute) and route.path == "/"
+    )
+    request = Request(
+        {"type": "http", "method": "GET", "path": "/", "root_path": "/proxy", "headers": []}
+    )
+    response = anyio.run(root_route.endpoint, request)
+
+    assert response.headers["location"] == "/configured/ui/"

@@ -29,7 +29,7 @@ export function isAbsoluteUrl(url: string): boolean {
 }
 
 export function browserPathPrefix(pathname = browserPathname()): string {
-  const match = pathname.match(/^(.*)\/ui(?:\/|$)/)
+  const match = pathname.match(/^(.*?)\/ui(?:\/|$)/)
   if (!match?.[1]) {
     return ''
   }

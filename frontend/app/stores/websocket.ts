@@ -14,6 +14,17 @@ export interface WebSocketMessage {
   [key: string]: any
 }
 
+function parseWebSocketUrl(url: string): URL {
+  const parsed = /^wss?:\/\//i.test(url) ? new URL(url) : new URL(url, window.location.origin)
+  if (parsed.protocol === 'http:') {
+    parsed.protocol = 'ws:'
+  }
+  if (parsed.protocol === 'https:') {
+    parsed.protocol = 'wss:'
+  }
+  return parsed
+}
+
 export interface ConnectionInfo {
   status: string
   timestamp: string
@@ -65,7 +76,7 @@ export const useWebSocketStore = defineStore('websocket', () => {
 
       if (authEnabled.value && accessToken.value) {
         try {
-          const parsed = new URL(wsUrl)
+          const parsed = parseWebSocketUrl(wsUrl)
           parsed.searchParams.set('token', accessToken.value)
           wsUrl = parsed.toString()
         } catch (err) {

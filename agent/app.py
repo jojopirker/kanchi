@@ -70,7 +70,10 @@ def _prefix_frontend_html_assets(html: str, prefix: str) -> str:
 
 def _is_frontend_html_response(request: Request, response) -> bool:
     content_type = response.headers.get("content-type", "")
-    return request.url.path.startswith("/ui") and "text/html" in content_type
+    root_path = _normalize_url_prefix(request.scope.get("root_path", ""))
+    path = request.scope.get("path", request.url.path)
+    local_path = path[len(root_path):] if root_path and path.startswith(root_path) else path
+    return local_path.startswith("/ui") and "text/html" in content_type
 
 
 @asynccontextmanager
@@ -257,7 +260,7 @@ def create_app() -> FastAPI:
     @app.get("/", include_in_schema=False)
     async def frontend_root(request: Request):
         root_path = request.scope.get("root_path", "")
-        return RedirectResponse(url=_prefixed_ui_path(root_path or config.frontend_url_prefix))
+        return RedirectResponse(url=_prefixed_ui_path(config.frontend_url_prefix or root_path))
 
     frontend_dist_dir = Path(config.frontend_dist_dir)
     if frontend_dist_dir.exists():
