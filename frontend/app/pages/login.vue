@@ -173,13 +173,12 @@ import {
 import IconBrandGoogle from '~/components/icons/IconBrandGoogle.vue'
 import { Activity, Github, Loader2, Sparkles } from 'lucide-vue-next'
 import { useBackendUrls } from '~/composables/useBackendUrls'
-import { resolveFrontendUrl } from '~/utils/backendUrls'
 
 const router = useRouter()
 const authStore = useAuthStore()
 const sessionStore = useSessionStore()
 const apiService = useApiService()
-const { apiUrl } = useBackendUrls()
+const { apiUrl, frontendUrl } = useBackendUrls()
 
 const { authEnabled, oauthProviders, isAuthenticated, config } = storeToRefs(authStore)
 
@@ -220,18 +219,22 @@ const hasOAuthAndBasic = computed(() =>
   Boolean(config.value?.basic_enabled && providerOptions.value.length)
 )
 
+function isAbsoluteUrl(url: string): boolean {
+  return /^[a-z][a-z\d+\-.]*:\/\//i.test(url)
+}
+
+function addOrigin(origins: Set<string>, url: string) {
+  if (isAbsoluteUrl(url)) {
+    origins.add(new URL(url).origin)
+  }
+}
+
 function resolveAllowedOrigins(): Set<string> {
   const origins = new Set<string>()
-  if (process.client) {
-    origins.add(window.location.origin)
-  }
   if (apiUrl) {
-    try {
-      origins.add(new URL(apiUrl).origin)
-    } catch (err) {
-      console.warn('[OAuth] Failed to parse apiUrl origin:', err)
-    }
+    addOrigin(origins, apiUrl)
   }
+  addOrigin(origins, frontendUrl('/'))
   return origins
 }
 
@@ -304,7 +307,7 @@ async function startOAuth(provider: AuthProvider) {
     await sessionStore.ensureInitialized({ persist: false })
     const authUrl = await apiService.getOAuthAuthorizationUrl(provider, {
       sessionId: sessionStore.sessionId as string | undefined,
-      redirectTo: resolveFrontendUrl('/login'),
+      redirectTo: frontendUrl('/login'),
     })
 
     window.open(authUrl.authorization_url, 'kanchi-oauth', 'width=480,height=640')

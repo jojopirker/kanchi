@@ -23,6 +23,9 @@ The manifest files in this directory use **placeholders** (enclosed in double cu
   - For MySQL, use the following placeholders:
     - **`{{MYSQL_USER}}`**, **`{{MYSQL_PASS}}`**, **`{{MYSQL_HOST}}`**, **`{{MYSQL_PORT}}`**, **`{{MYSQL_DB}}`**
 - **`{{YOUR_KANCHI_HOST}}`** *(Optional)*: DNS name for accessing Kanchi via an Ingress.
+- **`NUXT_PUBLIC_API_URL`** *(Optional)*: Runtime frontend API base URL. Defaults to same-origin by using an empty value.
+- **`NUXT_PUBLIC_WS_URL`** *(Optional)*: Runtime frontend WebSocket URL. Defaults to `/ws`.
+- **`NUXT_PUBLIC_FRONTEND_URL`** *(Optional)*: Runtime frontend base URL. Defaults to `/ui`.
 - **`NUXT_PUBLIC_URL_PREFIX`** *(Optional)*: Public reverse-proxy path prefix, such as `/kanchi`. Leave it empty when Kanchi is served from the host root.
 
 ---

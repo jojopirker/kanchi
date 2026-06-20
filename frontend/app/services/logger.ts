@@ -2,7 +2,7 @@
  * Unified logging service for frontend
  * Sends logs to backend for unified logging (only in development mode)
  */
-import { resolveApiUrl } from '~/utils/backendUrls'
+import { useBackendUrls } from '~/composables/useBackendUrls'
 
 type LogLevel = 'debug' | 'info' | 'warning' | 'error' | 'critical'
 
@@ -80,7 +80,8 @@ let logger: Logger | null = null
 export function useLogger(): Logger {
   if (!logger) {
     const isDevelopment = process.dev || import.meta.env.DEV || false
-    logger = new Logger(resolveApiUrl(), isDevelopment)
+    const { apiUrl } = useBackendUrls()
+    logger = new Logger(apiUrl, isDevelopment)
   }
   return logger
 }

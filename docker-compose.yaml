@@ -17,6 +17,9 @@ services:
       DATABASE_URL: ${DATABASE_URL:-sqlite:////data/kanchi.db}
       LOG_LEVEL: ${LOG_LEVEL:-INFO}
       DEVELOPMENT_MODE: ${DEVELOPMENT_MODE:-false}
+      NUXT_PUBLIC_API_URL: ${NUXT_PUBLIC_API_URL:-}
+      NUXT_PUBLIC_WS_URL: ${NUXT_PUBLIC_WS_URL:-/ws}
+      NUXT_PUBLIC_FRONTEND_URL: ${NUXT_PUBLIC_FRONTEND_URL:-/ui}
       # Optional: public path prefix used by reverse proxies, for example /kanchi.
       NUXT_PUBLIC_URL_PREFIX: ${NUXT_PUBLIC_URL_PREFIX:-}
       # Authentication & security (optional)

@@ -23,8 +23,17 @@ Kanchi is a real-time Celery task monitoring (and management) system with an enj
 ## Backend-hosted UI
 
 The Docker image serves the generated Nuxt UI from FastAPI at `/ui`. The backend
-serves the UI, API, and WebSocket endpoint from the same process, so the browser
-derives API and WebSocket URLs from the current host by default.
+serves the UI, API, and WebSocket endpoint from the same process. API,
+WebSocket, frontend, and public-prefix URLs are injected into the generated UI at
+request time, so they can be changed without rebuilding the Nuxt assets.
+
+Defaults use same-origin relative paths:
+
+```bash
+export NUXT_PUBLIC_API_URL=
+export NUXT_PUBLIC_WS_URL=/ws
+export NUXT_PUBLIC_FRONTEND_URL=/ui
+```
 
 For reverse proxies that expose Kanchi below a path prefix, set
 `NUXT_PUBLIC_URL_PREFIX` to the public prefix:
@@ -33,10 +42,10 @@ For reverse proxies that expose Kanchi below a path prefix, set
 export NUXT_PUBLIC_URL_PREFIX=/kanchi
 ```
 
-With that setting, the frontend uses `/kanchi/api/...` and `/kanchi/ws` from the
-browser while the FastAPI app still serves its internal routes at `/api`, `/ws`,
-and `/ui`. Configure the proxy or ingress to forward the public prefix to the
-FastAPI service.
+With the defaults above, that makes the frontend use `/kanchi/api/...`,
+`/kanchi/ws`, and `/kanchi/ui/...` while the FastAPI app still serves its
+internal routes at `/api`, `/ws`, and `/ui`. Configure the proxy or ingress to
+forward the public prefix to the FastAPI service.
 
 ## Quick Start (Docker Compose)
 
@@ -70,6 +79,9 @@ Run Kanchi using pre-built images from Docker Hub. No repository cloning require
          LOG_LEVEL: ${LOG_LEVEL:-INFO}
          DEVELOPMENT_MODE: ${DEVELOPMENT_MODE:-false}
          ENABLE_PICKLE_SERIALIZATION: ${ENABLE_PICKLE_SERIALIZATION:-false}
+         NUXT_PUBLIC_API_URL: ${NUXT_PUBLIC_API_URL:-}
+         NUXT_PUBLIC_WS_URL: ${NUXT_PUBLIC_WS_URL:-/ws}
+         NUXT_PUBLIC_FRONTEND_URL: ${NUXT_PUBLIC_FRONTEND_URL:-/ui}
          NUXT_PUBLIC_URL_PREFIX: ${NUXT_PUBLIC_URL_PREFIX:-}
 
          # Optional: Authentication (disabled by default)
@@ -138,6 +150,9 @@ Run Kanchi using pre-built images from Docker Hub. No repository cloning require
    export LOG_LEVEL=INFO
    export DEVELOPMENT_MODE=false
    export ENABLE_PICKLE_SERIALIZATION=false
+   export NUXT_PUBLIC_API_URL=
+   export NUXT_PUBLIC_WS_URL=/ws
+   export NUXT_PUBLIC_FRONTEND_URL=/ui
    export NUXT_PUBLIC_URL_PREFIX=/kanchi
    # Authentication / security (all optional)
    export AUTH_ENABLED=true

@@ -55,11 +55,19 @@ def create_frontend_app(monkeypatch, tmp_path, index_html: str, url_prefix: str 
 
 
 def test_frontend_serves_generated_ui_and_spa_fallback(monkeypatch, tmp_path):
+    monkeypatch.setenv("NUXT_PUBLIC_API_URL", "https://kanchi.example.com")
+    monkeypatch.setenv("NUXT_PUBLIC_WS_URL", "wss://kanchi.example.com/ws")
+    monkeypatch.setenv("NUXT_PUBLIC_FRONTEND_URL", "https://kanchi.example.com/ui")
     app = create_frontend_app(monkeypatch, tmp_path, "<html>Nuxt shell</html>")
 
     status, _, body = anyio.run(request_app, app, "/ui/")
     assert status == 200
     assert b"Nuxt shell" in body
+    assert (
+        b'window.__KANCHI_BACKEND_URLS__={"apiUrl":"https://kanchi.example.com",'
+        b'"wsUrl":"wss://kanchi.example.com/ws",'
+        b'"frontendUrl":"https://kanchi.example.com/ui","urlPrefix":""}'
+    ) in body
 
     status, _, body = anyio.run(request_app, app, "/ui/tasks/example-task")
     assert status == 200

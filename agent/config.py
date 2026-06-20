@@ -77,6 +77,15 @@ class Config:
     frontend_dist_dir: str = field(
         default_factory=lambda: os.getenv('FRONTEND_DIST_DIR', str(BASE_DIR / 'ui'))
     )
+    frontend_api_url: str = field(
+        default_factory=lambda: os.getenv('NUXT_PUBLIC_API_URL', '')
+    )
+    frontend_ws_url: str = field(
+        default_factory=lambda: os.getenv('NUXT_PUBLIC_WS_URL', '/ws')
+    )
+    frontend_url: str = field(
+        default_factory=lambda: os.getenv('NUXT_PUBLIC_FRONTEND_URL', '/ui')
+    )
     frontend_url_prefix: str = field(
         default_factory=lambda: os.getenv('NUXT_PUBLIC_URL_PREFIX', '')
     )

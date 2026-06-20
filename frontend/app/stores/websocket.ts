@@ -14,15 +14,19 @@ export interface WebSocketMessage {
   [key: string]: any
 }
 
-function parseWebSocketUrl(url: string): URL {
-  const parsed = /^wss?:\/\//i.test(url) ? new URL(url) : new URL(url, window.location.origin)
-  if (parsed.protocol === 'http:') {
-    parsed.protocol = 'ws:'
+function normalizeWebSocketUrl(url: string): string {
+  if (url.startsWith('https://')) {
+    return `wss://${url.slice(8)}`
   }
-  if (parsed.protocol === 'https:') {
-    parsed.protocol = 'wss:'
+  if (url.startsWith('http://')) {
+    return `ws://${url.slice(7)}`
   }
-  return parsed
+  return url
+}
+
+function appendWebSocketToken(url: string, token: string): string {
+  const separator = url.includes('?') ? '&' : '?'
+  return `${url}${separator}token=${encodeURIComponent(token)}`
 }
 
 export interface ConnectionInfo {
@@ -72,16 +76,10 @@ export const useWebSocketStore = defineStore('websocket', () => {
       error.value = null
 
       const { wsUrl: configuredWsUrl } = useBackendUrls()
-      let wsUrl = configuredWsUrl
+      let wsUrl = normalizeWebSocketUrl(configuredWsUrl)
 
       if (authEnabled.value && accessToken.value) {
-        try {
-          const parsed = parseWebSocketUrl(wsUrl)
-          parsed.searchParams.set('token', accessToken.value)
-          wsUrl = parsed.toString()
-        } catch (err) {
-          console.error('[WebSocket] Invalid WS URL:', err)
-        }
+        wsUrl = appendWebSocketToken(wsUrl, accessToken.value)
       }
 
       ws.value = new WebSocket(wsUrl)

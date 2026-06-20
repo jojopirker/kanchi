@@ -1,5 +1,6 @@
 """Main FastAPI application for Celery Event Monitor."""
 
+import json
 import logging
 import threading
 from pathlib import Path
@@ -89,6 +90,19 @@ def create_app() -> FastAPI:
         public_ui_path = f"{normalize_url_prefix(prefix)}/ui"
         return html.replace('"/ui', f'"{public_ui_path}').replace("'/ui", f"'{public_ui_path}")
 
+    def inject_frontend_runtime_config(html: str, prefix: str) -> str:
+        env = {
+            "apiUrl": config.frontend_api_url,
+            "wsUrl": config.frontend_ws_url,
+            "frontendUrl": config.frontend_url,
+            "urlPrefix": prefix,
+        }
+        payload = json.dumps(env, separators=(",", ":")).replace("</script>", "<\\/script>")
+        script = f"<script>window.__KANCHI_BACKEND_URLS__={payload};</script>"
+        if "</head>" in html:
+            return html.replace("</head>", f"{script}</head>", 1)
+        return f"{script}{html}"
+
     def is_frontend_html_response(request: Request, response) -> bool:
         content_type = response.headers.get("content-type", "")
         root_path = normalize_url_prefix(request.scope.get("root_path", ""))
@@ -123,7 +137,7 @@ def create_app() -> FastAPI:
         request_prefix = frontend_url_prefix or normalize_url_prefix(
             request.scope.get("root_path", "")
         )
-        if not request_prefix or not is_frontend_html_response(request, response):
+        if not is_frontend_html_response(request, response):
             return response
 
         body = b""
@@ -133,8 +147,11 @@ def create_app() -> FastAPI:
         headers = dict(response.headers)
         headers.pop("content-length", None)
         headers.pop("content-type", None)
+        html = body.decode("utf-8")
+        if request_prefix:
+            html = prefix_frontend_html_assets(html, request_prefix)
         return HTMLResponse(
-            prefix_frontend_html_assets(body.decode("utf-8"), request_prefix),
+            inject_frontend_runtime_config(html, request_prefix),
             status_code=response.status_code,
             headers=headers,
         )
