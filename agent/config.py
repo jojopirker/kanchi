@@ -2,10 +2,12 @@ import os
 import logging
 import secrets
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import List, Optional
 from urllib.parse import urlparse, urlunparse
 
 logger = logging.getLogger(__name__)
+BASE_DIR = Path(__file__).resolve().parent
 
 
 def _as_bool(value: Optional[str], default: bool = False) -> bool:
@@ -70,6 +72,14 @@ class Config:
     log_level: str = os.getenv('LOG_LEVEL', 'INFO')
     log_format: str = '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
     log_file: str = os.getenv('LOG_FILE', 'kanchi.log')
+
+    # Frontend hosting
+    frontend_dist_dir: str = field(
+        default_factory=lambda: os.getenv('FRONTEND_DIST_DIR', str(BASE_DIR / 'ui'))
+    )
+    frontend_url_prefix: str = field(
+        default_factory=lambda: os.getenv('NUXT_PUBLIC_URL_PREFIX', '')
+    )
 
     # Performance settings
     max_clients: int = int(os.getenv('MAX_WS_CLIENTS', 100))

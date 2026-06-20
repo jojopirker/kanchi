@@ -218,4 +218,6 @@ __marimo__/
 .streamlit/secrets.toml
 
 *.db
+agent/ui/
+frontend/.output/
 PLAN.md

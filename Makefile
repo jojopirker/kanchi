@@ -1,4 +1,4 @@
-.PHONY: dev logs backend frontend seed demo-data help
+.PHONY: dev logs backend frontend build-ui seed demo-data help
 
 help:
 	@echo "Kanchi Development Commands"
@@ -7,6 +7,7 @@ help:
 	@echo "make logs     - Tail unified log file (last 100 lines and follow)"
 	@echo "make backend  - Start backend only"
 	@echo "make frontend - Start frontend only"
+	@echo "make build-ui - Build frontend assets for backend hosting"
 	@echo "make seed     - Seed database with marketing/demo data (clears existing data)"
 	@echo "make demo-data - Seed database with full demo dataset (clears existing data)"
 
@@ -29,6 +30,13 @@ backend:
 frontend:
 	@echo "Starting frontend on http://localhost:3000..."
 	cd frontend && npm run dev
+
+build-ui:
+	@echo "Building frontend assets for backend hosting..."
+	cd frontend && NUXT_APP_BASE_URL=/ui/ npm run generate
+	rm -rf agent/ui
+	mkdir -p agent/ui
+	cp -R frontend/.output/public/. agent/ui
 
 logs:
 	@echo "Tailing unified log file (Ctrl+C to stop)..."
