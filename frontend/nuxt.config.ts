@@ -17,9 +17,6 @@ export default defineNuxtConfig({
   ],
   runtimeConfig: {
     public: {
-      wsUrl: process.env.NUXT_PUBLIC_WS_URL || '',
-      apiUrl: process.env.NUXT_PUBLIC_API_URL || '',
-      urlPrefix: process.env.NUXT_PUBLIC_URL_PREFIX || '',
       kanchiVersion: process.env.NUXT_PUBLIC_KANCHI_VERSION || 'dev'
     }
   },
