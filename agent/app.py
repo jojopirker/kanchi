@@ -51,31 +51,6 @@ class ApplicationState:
 app_state = ApplicationState()
 
 
-def _normalize_url_prefix(prefix: str) -> str:
-    normalized = prefix.strip()
-    if not normalized:
-        return ""
-    normalized = "/" + normalized.strip("/")
-    return "" if normalized == "/" else normalized
-
-
-def _prefixed_ui_path(prefix: str) -> str:
-    return f"{_normalize_url_prefix(prefix)}/ui/"
-
-
-def _prefix_frontend_html_assets(html: str, prefix: str) -> str:
-    public_ui_path = f"{_normalize_url_prefix(prefix)}/ui"
-    return html.replace('"/ui', f'"{public_ui_path}').replace("'/ui", f"'{public_ui_path}")
-
-
-def _is_frontend_html_response(request: Request, response) -> bool:
-    content_type = response.headers.get("content-type", "")
-    root_path = _normalize_url_prefix(request.scope.get("root_path", ""))
-    path = request.scope.get("path", request.url.path)
-    local_path = path[len(root_path):] if root_path and path.startswith(root_path) else path
-    return local_path.startswith("/ui") and "text/html" in content_type
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan manager."""
@@ -100,6 +75,27 @@ def create_app() -> FastAPI:
     config = Config.from_env()
     app_state.config = config
 
+    def normalize_url_prefix(prefix: str) -> str:
+        normalized = prefix.strip()
+        if not normalized:
+            return ""
+        normalized = "/" + normalized.strip("/")
+        return "" if normalized == "/" else normalized
+
+    def prefixed_ui_path(prefix: str) -> str:
+        return f"{normalize_url_prefix(prefix)}/ui/"
+
+    def prefix_frontend_html_assets(html: str, prefix: str) -> str:
+        public_ui_path = f"{normalize_url_prefix(prefix)}/ui"
+        return html.replace('"/ui', f'"{public_ui_path}').replace("'/ui", f"'{public_ui_path}")
+
+    def is_frontend_html_response(request: Request, response) -> bool:
+        content_type = response.headers.get("content-type", "")
+        root_path = normalize_url_prefix(request.scope.get("root_path", ""))
+        path = request.scope.get("path", request.url.path)
+        local_path = path[len(root_path):] if root_path and path.startswith(root_path) else path
+        return local_path.startswith("/ui") and "text/html" in content_type
+
     app = FastAPI(
         title="Celery Event Monitor",
         description="Real-time monitoring of Celery task events with WebSocket broadcasting",
@@ -119,15 +115,15 @@ def create_app() -> FastAPI:
     if config.allowed_hosts:
         app.add_middleware(TrustedHostMiddleware, allowed_hosts=config.allowed_hosts)
 
-    frontend_url_prefix = _normalize_url_prefix(config.frontend_url_prefix)
+    frontend_url_prefix = normalize_url_prefix(config.frontend_url_prefix)
 
     @app.middleware("http")
     async def frontend_prefix_assets(request: Request, call_next):
         response = await call_next(request)
-        request_prefix = frontend_url_prefix or _normalize_url_prefix(
+        request_prefix = frontend_url_prefix or normalize_url_prefix(
             request.scope.get("root_path", "")
         )
-        if not request_prefix or not _is_frontend_html_response(request, response):
+        if not request_prefix or not is_frontend_html_response(request, response):
             return response
 
         body = b""
@@ -138,7 +134,7 @@ def create_app() -> FastAPI:
         headers.pop("content-length", None)
         headers.pop("content-type", None)
         return HTMLResponse(
-            _prefix_frontend_html_assets(body.decode("utf-8"), request_prefix),
+            prefix_frontend_html_assets(body.decode("utf-8"), request_prefix),
             status_code=response.status_code,
             headers=headers,
         )
@@ -260,7 +256,7 @@ def create_app() -> FastAPI:
     @app.get("/", include_in_schema=False)
     async def frontend_root(request: Request):
         root_path = request.scope.get("root_path", "")
-        return RedirectResponse(url=_prefixed_ui_path(config.frontend_url_prefix or root_path))
+        return RedirectResponse(url=prefixed_ui_path(config.frontend_url_prefix or root_path))
 
     frontend_dist_dir = Path(config.frontend_dist_dir)
     if frontend_dist_dir.exists():
