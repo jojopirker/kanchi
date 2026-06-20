@@ -172,12 +172,14 @@ import {
 } from '~/components/ui/card'
 import IconBrandGoogle from '~/components/icons/IconBrandGoogle.vue'
 import { Activity, Github, Loader2, Sparkles } from 'lucide-vue-next'
+import { useBackendUrls } from '~/composables/useBackendUrls'
+import { resolveFrontendUrl } from '~/utils/backendUrls'
 
 const router = useRouter()
-const runtimeConfig = useRuntimeConfig()
 const authStore = useAuthStore()
 const sessionStore = useSessionStore()
 const apiService = useApiService()
+const { apiUrl } = useBackendUrls()
 
 const { authEnabled, oauthProviders, isAuthenticated, config } = storeToRefs(authStore)
 
@@ -223,7 +225,6 @@ function resolveAllowedOrigins(): Set<string> {
   if (process.client) {
     origins.add(window.location.origin)
   }
-  const apiUrl = runtimeConfig.public.apiUrl as string | undefined
   if (apiUrl) {
     try {
       origins.add(new URL(apiUrl).origin)
@@ -303,7 +304,7 @@ async function startOAuth(provider: AuthProvider) {
     await sessionStore.ensureInitialized({ persist: false })
     const authUrl = await apiService.getOAuthAuthorizationUrl(provider, {
       sessionId: sessionStore.sessionId as string | undefined,
-      redirectTo: window.location.origin + '/login',
+      redirectTo: resolveFrontendUrl('/login'),
     })
 
     window.open(authUrl.authorization_url, 'kanchi-oauth', 'width=480,height=640')

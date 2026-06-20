@@ -7,6 +7,7 @@ import { useWorkersStore } from './workers'
 import { useOrphanTasksStore } from './orphanTasks'
 import { useFailedTasksStore } from './failedTasks'
 import { useTaskActionsStore } from './taskActions'
+import { useBackendUrls } from '~/composables/useBackendUrls'
 
 export interface WebSocketMessage {
   type: string
@@ -59,8 +60,8 @@ export const useWebSocketStore = defineStore('websocket', () => {
       isConnecting.value = true
       error.value = null
 
-      const config = useRuntimeConfig()
-      let wsUrl = config.public.wsUrl as string
+      const { wsUrl: configuredWsUrl } = useBackendUrls()
+      let wsUrl = configuredWsUrl
 
       if (authEnabled.value && accessToken.value) {
         try {

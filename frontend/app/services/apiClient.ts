@@ -14,6 +14,7 @@ import type {
   TaskIssueConfig,
   WorkerInfo
 } from '../src/types/api'
+import { resolveApiUrl } from '~/utils/backendUrls'
 
 export type AuthProvider = 'google' | 'github'
 export type TaskEventResponse = TaskEvent & {
@@ -926,8 +927,7 @@ let apiService: ApiService | null = null
 
 export function useApiService(): ApiService {
   if (!apiService) {
-    const config = useRuntimeConfig()
-    apiService = new ApiService(config.public.apiUrl as string)
+    apiService = new ApiService(resolveApiUrl())
   }
   return apiService
 }

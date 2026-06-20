@@ -19,8 +19,10 @@ import {
 import Pill from "~/components/common/Pill.vue"
 import StatusPill from "~/components/StatusPill.vue"
 import {Badge} from "~/components/ui/badge";
+import { useBackendUrls } from '~/composables/useBackendUrls'
 
 const { eventTypeToStatus, getStatusVariant, formatStatus } = useTaskStatus()
+const { apiUrl } = useBackendUrls()
 
 const props = defineProps<{
   isLiveMode?: boolean
@@ -178,7 +180,7 @@ const lookupTask = async (taskId: string) => {
       return
     }
     
-    const response = await fetch(`http://localhost:8765/api/events/recent?limit=1000`)
+    const response = await fetch(`${apiUrl}/api/events/recent?limit=1000`)
     if (response.ok) {
       const responseData = await response.json()
 
