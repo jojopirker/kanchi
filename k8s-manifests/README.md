@@ -23,6 +23,7 @@ The manifest files in this directory use **placeholders** (enclosed in double cu
   - For MySQL, use the following placeholders:
     - **`{{MYSQL_USER}}`**, **`{{MYSQL_PASS}}`**, **`{{MYSQL_HOST}}`**, **`{{MYSQL_PORT}}`**, **`{{MYSQL_DB}}`**
 - **`{{YOUR_KANCHI_HOST}}`** *(Optional)*: DNS name for accessing Kanchi via an Ingress.
+- **`NUXT_PUBLIC_URL_PREFIX`** *(Optional)*: Public reverse-proxy path prefix, such as `/kanchi`. Leave it empty when Kanchi is served from the host root.
 
 ---
 
@@ -54,6 +55,10 @@ The manifest files in this directory use **placeholders** (enclosed in double cu
    ```bash
    kubectl apply -f {{MANIFEST_FILE}}
 
-3. If you decide against using an ingress, you will not be able to access Kanchi through a regular (/public) URL. In that case, you will need to run two port-forwards so that you can access Kanchi through a "localhost" URL. In that case you will access it through "http://localhost:3000"
-For the UI: `kubectl -n {{YOUR_K8S_NAMESPACE}} port-forward service/kanchi 3000:3000`
-For the Websockets: `kubectl -n {{YOUR_K8S_NAMESPACE}} port-forward service/kanchi 8765:8765`
+3. If you decide against using an ingress, port-forward the backend service:
+
+   ```bash
+   kubectl -n {{YOUR_K8S_NAMESPACE}} port-forward service/kanchi 8765:8765
+   ```
+
+   Then open `http://localhost:8765/ui`.

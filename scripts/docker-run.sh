@@ -14,7 +14,6 @@ RABBITMQ_VHOST="${RABBITMQ_VHOST:-/}"
 LOG_LEVEL="${LOG_LEVEL:-INFO}"
 WS_PORT="${WS_PORT:-8765}"
 FRONTEND_PORT="${FRONTEND_PORT:-3000}"
-WS_PUBLIC_HOST="${WS_PUBLIC_HOST:-localhost}"
 
 # Function to detect platform and adjust localhost
 detect_docker_host() {
@@ -114,10 +113,6 @@ while [[ $# -gt 0 ]]; do
             FRONTEND_PORT="$2"
             shift 2
             ;;
-        --ws-public-host)
-            WS_PUBLIC_HOST="$2"
-            shift 2
-            ;;
         --help)
             cat << EOF
 Usage: $0 [OPTIONS]
@@ -134,7 +129,6 @@ Options:
     --image NAME            Docker image name (default: kanchi:latest)
     --ws-port PORT          WebSocket port (default: 8765)
     --frontend-port PORT    Frontend port (default: 3000)
-    --ws-public-host HOST   Public hostname/IP for WebSocket (default: localhost, use EC2 public IP for EC2)
     --help                  Show this help message
 
 Examples:
@@ -144,8 +138,8 @@ Examples:
     # Connect to RabbitMQ on another server
     $0 --rabbitmq-host rabbitmq.example.com
 
-    # Connect to RabbitMQ on EC2 instance with public WebSocket access
-    $0 --rabbitmq-host 10.0.1.23 --rabbitmq-user myuser --rabbitmq-pass mypass --ws-public-host ec2-52-12-34-56.compute-1.amazonaws.com
+    # Connect to RabbitMQ on EC2 instance
+    $0 --rabbitmq-host 10.0.1.23 --rabbitmq-user myuser --rabbitmq-pass mypass
 
     # Run with debug logging
     $0 --log-level DEBUG
@@ -168,17 +162,13 @@ ENCODED_VHOST=$(printf '%s' "$RABBITMQ_VHOST" | sed 's|/|%2F|g')
 # Construct the AMQP URL
 CELERY_BROKER_URL="amqp://${RABBITMQ_USER}:${RABBITMQ_PASS}@${ACTUAL_HOST}:${RABBITMQ_PORT}/${ENCODED_VHOST}"
 
-# Construct the WebSocket URL for the frontend
-WS_URL="ws://${WS_PUBLIC_HOST}:${WS_PORT}/ws"
-
 echo "========================================="
 echo "Kanchi Docker Container Configuration"
 echo "========================================="
 echo "Image:        $IMAGE_NAME"
 echo "Broker URL:   $CELERY_BROKER_URL"
 echo "WebSocket:    http://localhost:$WS_PORT (internal)"
-echo "              $WS_URL (public)"
-echo "Frontend:     http://localhost:$FRONTEND_PORT"
+echo "Frontend:     http://localhost:$FRONTEND_PORT/ui"
 echo "Log Level:    $LOG_LEVEL"
 echo "========================================="
 
@@ -199,8 +189,8 @@ docker run \
     --rm \
     -it \
     -p "${WS_PORT}:8765" \
-    -p "${FRONTEND_PORT}:3000" \
+    -p "${FRONTEND_PORT}:8765" \
     -e "CELERY_BROKER_URL=${CELERY_BROKER_URL}" \
     -e "LOG_LEVEL=${LOG_LEVEL}" \
-    -e "NUXT_PUBLIC_WS_URL=${WS_URL}" \
+    -e "NUXT_PUBLIC_URL_PREFIX=${NUXT_PUBLIC_URL_PREFIX:-}" \
     "$IMAGE_NAME"

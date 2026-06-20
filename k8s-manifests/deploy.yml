@@ -26,12 +26,9 @@ spec:
       - env:
         - name: CELERY_BROKER_URL
           value: {{YOUR_CELERY_BROKER_URL}}
-        # Optional: Only required when an ingress is being used
-        - name: NUXT_PUBLIC_API_URL
-          value: http://{{YOUR_KANCHI_HOST}}
-        # Optional: Only required when an ingress is being used
-        - name: NUXT_PUBLIC_WS_URL
-          value: ws://{{YOUR_KANCHI_HOST}}/ws
+        # Optional: Set to a public reverse-proxy path prefix, for example /kanchi.
+        - name: NUXT_PUBLIC_URL_PREFIX
+          value: ""
         # Optional: If you want to configure a different DB backend than SQLite.
         # - name: DATABASE_URL
         #   value: {{YOUR_DATABASE_URL}}
@@ -65,8 +62,6 @@ spec:
         name: kanchi
         ports:
         - containerPort: 8765
-          protocol: TCP
-        - containerPort: 3000
           protocol: TCP
         readinessProbe:
           failureThreshold: 3

@@ -20,9 +20,27 @@ Kanchi is a real-time Celery task monitoring (and management) system with an enj
 ![Task retry chain](.github/images/task-retry-chain.png)
 ![Retry task modal](.github/images/retry-task-modal.png)
 
+## Backend-hosted UI
+
+The Docker image serves the generated Nuxt UI from FastAPI at `/ui`. The backend
+serves the UI, API, and WebSocket endpoint from the same process, so the browser
+derives API and WebSocket URLs from the current host by default.
+
+For reverse proxies that expose Kanchi below a path prefix, set
+`NUXT_PUBLIC_URL_PREFIX` to the public prefix:
+
+```bash
+export NUXT_PUBLIC_URL_PREFIX=/kanchi
+```
+
+With that setting, the frontend uses `/kanchi/api/...` and `/kanchi/ws` from the
+browser while the FastAPI app still serves its internal routes at `/api`, `/ws`,
+and `/ui`. Configure the proxy or ingress to forward the public prefix to the
+FastAPI service.
+
 ## Quick Start (Docker Compose)
 
-Run Kanchi using pre-built images from Docker Hub. No repository cloning required—just set a few environment variables and start the container.
+Run Kanchi using pre-built images from Docker Hub. No repository cloning required—just set a few environment variables and start the container. The container runs one FastAPI process and serves the generated UI at `/ui`.
 
 ### Prerequisites
 
@@ -39,8 +57,8 @@ Run Kanchi using pre-built images from Docker Hub. No repository cloning require
        image: getkanchi/kanchi:latest
        container_name: kanchi
        ports:
-         - "3000:3000"
          - "8765:8765"
+         - "3000:8765"
        environment:
          # Required: Your Celery broker connection string
          CELERY_BROKER_URL: ${CELERY_BROKER_URL}
@@ -52,10 +70,7 @@ Run Kanchi using pre-built images from Docker Hub. No repository cloning require
          LOG_LEVEL: ${LOG_LEVEL:-INFO}
          DEVELOPMENT_MODE: ${DEVELOPMENT_MODE:-false}
          ENABLE_PICKLE_SERIALIZATION: ${ENABLE_PICKLE_SERIALIZATION:-false}
-
-         # Optional: Frontend URLs
-         NUXT_PUBLIC_API_URL: ${NUXT_PUBLIC_API_URL:-http://localhost:8765}
-         NUXT_PUBLIC_WS_URL: ${NUXT_PUBLIC_WS_URL:-ws://localhost:8765/ws}
+         NUXT_PUBLIC_URL_PREFIX: ${NUXT_PUBLIC_URL_PREFIX:-}
 
          # Optional: Authentication (disabled by default)
          AUTH_ENABLED: ${AUTH_ENABLED:-false}
@@ -88,7 +103,13 @@ Run Kanchi using pre-built images from Docker Hub. No repository cloning require
          - kanchi-data:/data
        restart: unless-stopped
        healthcheck:
-         test: ["CMD", "curl", "-f", "http://localhost:8765/api/health"]
+         test:
+           [
+             "CMD",
+             "python",
+             "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:8765/api/health').read()",
+           ]
          interval: 30s
          timeout: 10s
          retries: 3
@@ -117,9 +138,7 @@ Run Kanchi using pre-built images from Docker Hub. No repository cloning require
    export LOG_LEVEL=INFO
    export DEVELOPMENT_MODE=false
    export ENABLE_PICKLE_SERIALIZATION=false
-   export NUXT_PUBLIC_API_URL=http://your-kanchi-host:8765
-   export NUXT_PUBLIC_WS_URL=ws://your-kanchi-host:8765/ws
-
+   export NUXT_PUBLIC_URL_PREFIX=/kanchi
    # Authentication / security (all optional)
    export AUTH_ENABLED=true
    export AUTH_BASIC_ENABLED=true
@@ -139,7 +158,7 @@ Run Kanchi using pre-built images from Docker Hub. No repository cloning require
    export ALLOWED_EMAIL_PATTERNS='*@example.com,*@example.org'
 
    # CORS and host controls
-   export ALLOWED_ORIGINS=https://your-kanchi-host,http://localhost:3000
+   export ALLOWED_ORIGINS=https://your-kanchi-host,http://localhost:8765,http://localhost:3000
    export ALLOWED_HOSTS=your-kanchi-host,localhost,127.0.0.1
 
    # Token secrets (must be non-default in production)
@@ -160,7 +179,8 @@ export ENABLE_PICKLE_SERIALIZATION=false
 
 4. **Visit the app**
 
-   - Frontend: `http://localhost:3000`
+   - Frontend: `http://localhost:8765/ui`
+   - Legacy frontend port mapping: `http://localhost:3000/ui`
    - API / Docs: `http://localhost:8765`
 
 5. **Optional commands**
