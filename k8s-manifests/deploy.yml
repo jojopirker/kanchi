@@ -33,6 +33,9 @@ spec:
         - name: NUXT_PUBLIC_FRONTEND_URL
           value: "/ui"
         # Optional: Set to a public reverse-proxy path prefix, for example /kanchi.
+        - name: KANCHI_ROOT_PATH
+          value: ""
+        # Backwards compatible alias for existing deployments.
         - name: NUXT_PUBLIC_URL_PREFIX
           value: ""
         # Optional: If you want to configure a different DB backend than SQLite.

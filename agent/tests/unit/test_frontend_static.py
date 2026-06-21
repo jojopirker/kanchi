@@ -3,7 +3,7 @@ import anyio
 from app import create_app
 
 
-async def request_app(app, path: str, root_path: str = ""):
+async def request_app(app, path: str, root_path: str = "", accept: str = "text/html"):
     messages = []
     scope = {
         "type": "http",
@@ -14,7 +14,7 @@ async def request_app(app, path: str, root_path: str = ""):
         "raw_path": path.encode(),
         "query_string": b"",
         "root_path": root_path,
-        "headers": [(b"host", b"testserver"), (b"accept", b"text/html")],
+        "headers": [(b"host", b"testserver"), (b"accept", accept.encode())],
         "client": ("testclient", 50000),
         "server": ("testserver", 80),
     }
@@ -40,7 +40,39 @@ async def request_app(app, path: str, root_path: str = ""):
     return start["status"], headers, body
 
 
-def create_frontend_app(monkeypatch, tmp_path, index_html: str, url_prefix: str = ""):
+async def websocket_app(app, path: str, root_path: str = ""):
+    messages = []
+    scope = {
+        "type": "websocket",
+        "asgi": {"version": "3.0"},
+        "scheme": "ws",
+        "path": path,
+        "raw_path": path.encode(),
+        "query_string": b"",
+        "root_path": root_path,
+        "headers": [(b"host", b"testserver")],
+        "client": ("testclient", 50000),
+        "server": ("testserver", 80),
+        "subprotocols": [],
+    }
+
+    async def receive():
+        return {"type": "websocket.connect"}
+
+    async def send(message):
+        messages.append(message)
+
+    await app(scope, receive, send)
+    return messages
+
+
+def create_frontend_app(
+    monkeypatch,
+    tmp_path,
+    index_html: str,
+    url_prefix: str = "",
+    root_path: str = "",
+):
     frontend_dir = tmp_path / "ui"
     frontend_dir.mkdir(exist_ok=True)
     (frontend_dir / "index.html").write_text(index_html, encoding="utf-8")
@@ -50,6 +82,11 @@ def create_frontend_app(monkeypatch, tmp_path, index_html: str, url_prefix: str 
         monkeypatch.setenv("NUXT_PUBLIC_URL_PREFIX", url_prefix)
     else:
         monkeypatch.delenv("NUXT_PUBLIC_URL_PREFIX", raising=False)
+    if root_path:
+        monkeypatch.setenv("KANCHI_ROOT_PATH", root_path)
+    else:
+        monkeypatch.delenv("KANCHI_ROOT_PATH", raising=False)
+    monkeypatch.delenv("ASGI_ROOT_PATH", raising=False)
 
     return create_app()
 
@@ -117,3 +154,50 @@ def test_frontend_root_redirect_uses_public_prefix(monkeypatch, tmp_path):
     )
     _, headers, _ = anyio.run(request_app, app, "/", "/proxy")
     assert headers["location"] == "/configured/ui/"
+
+
+def test_configured_root_path_serves_prefixed_ui_api_and_websocket(monkeypatch, tmp_path):
+    app = create_frontend_app(
+        monkeypatch,
+        tmp_path,
+        '<html><head><script src="/ui/_nuxt/app.js"></script></head></html>',
+        root_path="/kanchi",
+    )
+
+    assert app.root_path == "/kanchi"
+
+    status, _, body = anyio.run(request_app, app, "/kanchi/ui/")
+    assert status == 200
+    assert b'"/kanchi/ui/_nuxt/app.js"' in body
+
+    status, _, body = anyio.run(
+        request_app,
+        app,
+        "/kanchi/api/health",
+        "",
+        "application/json",
+    )
+    assert status == 200
+    assert b'"status":"healthy"' in body
+
+    messages = anyio.run(websocket_app, app, "/kanchi/ws")
+    assert {
+        "type": "websocket.close",
+        "code": 1011,
+        "reason": "Server not initialized",
+    } in messages
+
+
+def test_url_prefix_configures_root_path_for_backwards_compatibility(monkeypatch, tmp_path):
+    app = create_frontend_app(
+        monkeypatch,
+        tmp_path,
+        "<html>Kanchi UI</html>",
+        url_prefix="/kanchi",
+    )
+
+    assert app.root_path == "/kanchi"
+
+    status, headers, _ = anyio.run(request_app, app, "/kanchi/")
+    assert status == 307
+    assert headers["location"] == "/kanchi/ui/"

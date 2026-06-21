@@ -21,6 +21,8 @@ services:
       NUXT_PUBLIC_WS_URL: ${NUXT_PUBLIC_WS_URL:-/ws}
       NUXT_PUBLIC_FRONTEND_URL: ${NUXT_PUBLIC_FRONTEND_URL:-/ui}
       # Optional: public path prefix used by reverse proxies, for example /kanchi.
+      KANCHI_ROOT_PATH: ${KANCHI_ROOT_PATH:-}
+      # Backwards compatible alias for existing deployments.
       NUXT_PUBLIC_URL_PREFIX: ${NUXT_PUBLIC_URL_PREFIX:-}
       # Authentication & security (optional)
       AUTH_ENABLED: ${AUTH_ENABLED:-false}

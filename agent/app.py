@@ -110,11 +110,14 @@ def create_app() -> FastAPI:
         local_path = path[len(root_path):] if root_path and path.startswith(root_path) else path
         return local_path.startswith("/ui") and "text/html" in content_type
 
+    root_path = normalize_url_prefix(config.asgi_root_path)
+
     app = FastAPI(
         title="Celery Event Monitor",
         description="Real-time monitoring of Celery task events with WebSocket broadcasting",
         version="0.1.0",
-        lifespan=lifespan
+        lifespan=lifespan,
+        root_path=root_path,
     )
 
     allowed_origins = config.allowed_origins or ["*"]
@@ -130,11 +133,12 @@ def create_app() -> FastAPI:
         app.add_middleware(TrustedHostMiddleware, allowed_hosts=config.allowed_hosts)
 
     frontend_url_prefix = normalize_url_prefix(config.frontend_url_prefix)
+    public_url_prefix = frontend_url_prefix or root_path
 
     @app.middleware("http")
     async def frontend_prefix_assets(request: Request, call_next):
         response = await call_next(request)
-        request_prefix = frontend_url_prefix or normalize_url_prefix(
+        request_prefix = public_url_prefix or normalize_url_prefix(
             request.scope.get("root_path", "")
         )
         if not is_frontend_html_response(request, response):
@@ -273,7 +277,7 @@ def create_app() -> FastAPI:
     @app.get("/", include_in_schema=False)
     async def frontend_root(request: Request):
         root_path = request.scope.get("root_path", "")
-        return RedirectResponse(url=prefixed_ui_path(config.frontend_url_prefix or root_path))
+        return RedirectResponse(url=prefixed_ui_path(public_url_prefix or root_path))
 
     frontend_dist_dir = Path(config.frontend_dist_dir)
     if frontend_dist_dir.exists():
@@ -431,6 +435,7 @@ def start_server():
         app,
         host=config.ws_host,
         port=config.ws_port,
+        root_path=normalize_url_prefix(config.asgi_root_path),
         log_level=config.log_level.lower(),
         reload=False
     )

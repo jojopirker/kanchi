@@ -36,16 +36,17 @@ export NUXT_PUBLIC_FRONTEND_URL=/ui
 ```
 
 For reverse proxies that expose Kanchi below a path prefix, set
-`NUXT_PUBLIC_URL_PREFIX` to the public prefix:
+`KANCHI_ROOT_PATH` to the public prefix:
 
 ```bash
-export NUXT_PUBLIC_URL_PREFIX=/kanchi
+export KANCHI_ROOT_PATH=/kanchi
 ```
 
 With the defaults above, that makes the frontend use `/kanchi/api/...`,
-`/kanchi/ws`, and `/kanchi/ui/...` while the FastAPI app still serves its
-internal routes at `/api`, `/ws`, and `/ui`. Configure the proxy or ingress to
-forward the public prefix to the FastAPI service.
+`/kanchi/ws`, and `/kanchi/ui/...`, generated assets use
+`/kanchi/ui/_nuxt/...`, and FastAPI treats `/kanchi` as the ASGI root path.
+`NUXT_PUBLIC_URL_PREFIX` is still supported for existing deployments and also
+configures the root path when `KANCHI_ROOT_PATH` is not set.
 
 ## Quick Start (Docker Compose)
 
@@ -82,6 +83,7 @@ Run Kanchi using pre-built images from Docker Hub. No repository cloning require
          NUXT_PUBLIC_API_URL: ${NUXT_PUBLIC_API_URL:-}
          NUXT_PUBLIC_WS_URL: ${NUXT_PUBLIC_WS_URL:-/ws}
          NUXT_PUBLIC_FRONTEND_URL: ${NUXT_PUBLIC_FRONTEND_URL:-/ui}
+         KANCHI_ROOT_PATH: ${KANCHI_ROOT_PATH:-}
          NUXT_PUBLIC_URL_PREFIX: ${NUXT_PUBLIC_URL_PREFIX:-}
 
          # Optional: Authentication (disabled by default)
@@ -153,7 +155,7 @@ Run Kanchi using pre-built images from Docker Hub. No repository cloning require
    export NUXT_PUBLIC_API_URL=
    export NUXT_PUBLIC_WS_URL=/ws
    export NUXT_PUBLIC_FRONTEND_URL=/ui
-   export NUXT_PUBLIC_URL_PREFIX=/kanchi
+   export KANCHI_ROOT_PATH=/kanchi
    # Authentication / security (all optional)
    export AUTH_ENABLED=true
    export AUTH_BASIC_ENABLED=true
