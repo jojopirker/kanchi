@@ -33,6 +33,15 @@ logger = logging.getLogger(__name__)
 APP_START_TIME = datetime.now(timezone.utc)
 
 
+def normalize_url_prefix(prefix: str) -> str:
+    """Normalize a public URL prefix such as /kanchi."""
+    normalized = prefix.strip()
+    if not normalized:
+        return ""
+    normalized = "/" + normalized.strip("/")
+    return "" if normalized == "/" else normalized
+
+
 class ApplicationState:
     """Container for application state and dependencies."""
     def __init__(self):
@@ -75,13 +84,6 @@ def create_app() -> FastAPI:
     """Create and configure the FastAPI application."""
     config = Config.from_env()
     app_state.config = config
-
-    def normalize_url_prefix(prefix: str) -> str:
-        normalized = prefix.strip()
-        if not normalized:
-            return ""
-        normalized = "/" + normalized.strip("/")
-        return "" if normalized == "/" else normalized
 
     def prefixed_ui_path(prefix: str) -> str:
         return f"{normalize_url_prefix(prefix)}/ui/"
@@ -144,9 +146,10 @@ def create_app() -> FastAPI:
         if not is_frontend_html_response(request, response):
             return response
 
-        body = b""
+        chunks = []
         async for chunk in response.body_iterator:
-            body += chunk
+            chunks.append(chunk)
+        body = b"".join(chunks)
 
         headers = dict(response.headers)
         headers.pop("content-length", None)
@@ -280,7 +283,7 @@ def create_app() -> FastAPI:
         return RedirectResponse(url=prefixed_ui_path(public_url_prefix or root_path))
 
     frontend_dist_dir = Path(config.frontend_dist_dir)
-    if frontend_dist_dir.exists():
+    if frontend_dist_dir.is_dir():
         app.frontend(
             "/ui",
             directory=frontend_dist_dir,

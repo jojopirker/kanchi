@@ -1,5 +1,6 @@
 import anyio
 
+import app as app_module
 from app import create_app
 
 
@@ -201,3 +202,18 @@ def test_url_prefix_configures_root_path_for_backwards_compatibility(monkeypatch
     status, headers, _ = anyio.run(request_app, app, "/kanchi/")
     assert status == 307
     assert headers["location"] == "/kanchi/ui/"
+
+
+def test_start_server_passes_normalized_root_path(monkeypatch):
+    captured = {}
+
+    monkeypatch.setenv("KANCHI_ROOT_PATH", "kanchi")
+    monkeypatch.setattr(
+        app_module.uvicorn,
+        "run",
+        lambda *args, **kwargs: captured.update(kwargs),
+    )
+
+    app_module.start_server()
+
+    assert captured["root_path"] == "/kanchi"
